@@ -4,6 +4,7 @@ import { findArticleBySlug } from "@/lib/queries/articles";
 
 // Params for Slug Type
 import { Params } from "next/dist/server/request/params";
+import { findArticleInfoBySlug } from "@/lib/queries/complex";
 
 // =====================================================================================================
 // =====================================================================================================
@@ -18,7 +19,7 @@ export async function GET(request: Request, segmentData: { params: Params }) {
   }
 
   console.log("slug", slug[0]);
-  const article = await findArticleBySlug(slug[0]);
+  const article = await findArticleInfoBySlug(slug[0]);
 
   if (!article) {
     return NextResponse.json({ error: "Article not found" }, { status: 404 });

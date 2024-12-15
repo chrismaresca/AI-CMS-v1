@@ -1,7 +1,12 @@
 import { relations, SQL, sql } from "drizzle-orm";
 
 // Drizzle ORM Types
-import { integer, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { integer, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+
+// ==================
+// Publish Status Enum
+// ==================
+export const publishStatusEnum = pgEnum("publish_status", ["draft", "in-review", "scheduled", "published", "archived"]);
 
 // ==================
 // Authors Schema
@@ -11,6 +16,9 @@ export const authors = pgTable("authors", {
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   email: text("email").notNull().unique(),
+  title: text("title").$default(() => "Founder"),
+  bio: text("bio").$default(() => ""),
+  location: text("location").$default(() => "New York, NY"),
 
   // Date fields
   dateCreated: timestamp("date_created").defaultNow().notNull(),
@@ -29,13 +37,16 @@ export const articles = pgTable(
     slug: text("slug")
       .notNull()
       .unique()
-      .generatedAlwaysAs(():SQL => sql`lower(replace(${articles.title}, ' ', '-'))`),
+      .generatedAlwaysAs((): SQL => sql`lower(replace(${articles.title}, ' ', '-'))`),
     authorId: uuid("author_id")
       .notNull()
       .references(() => authors.id), // Foreign key relationship for author
     brandId: uuid("brand_id")
       .notNull()
       .references(() => brands.id), // Foreign key relationship for brand
+
+    // Publish Status
+    publishStatus: publishStatusEnum("publish_status").default("draft").notNull(),
 
     // Date fields
     dateCreated: timestamp("date_created").defaultNow().notNull(),
@@ -73,6 +84,9 @@ export const linkedInPosts = pgTable("linkedin_posts", {
   // Date fields
   dateCreated: timestamp("date_created").defaultNow().notNull(),
   dateUpdated: timestamp("date_updated", { mode: "date", precision: 3 }).$onUpdate(() => new Date()),
+
+  // Publish Status
+  publishStatus: publishStatusEnum("publish_status").default("draft").notNull(),
 
   // Foreign key relationship for article. If post is standalone, mainArticleId is null.
   mainArticleId: uuid("main_article_id").references(() => articles.id, {
@@ -113,6 +127,9 @@ export const tweetPosts = pgTable("tweet_posts", {
     onDelete: "set null",
     onUpdate: "cascade",
   }),
+
+  // Publish Status
+  publishStatus: publishStatusEnum("publish_status").default("draft").notNull(),
 
   // Metadata fields
   title: text("title"), // Optional title for the thread or standalone tweet
@@ -157,6 +174,10 @@ export const tweets = pgTable(
 export const tags = pgTable("tags", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
+  slug: text("slug")
+    .notNull()
+    .unique()
+    .generatedAlwaysAs((): SQL => sql`lower(replace(${tags.name}, ' ', '-'))`),
 
   // Date fields
   dateCreated: timestamp("date_created").defaultNow().notNull(),
@@ -230,6 +251,10 @@ export const articlesRelations = relations(articles, ({ many, one }) => ({
   brand: one(brands, {
     fields: [articles.brandId],
     references: [brands.id],
+  }),
+  author: one(authors, {
+    fields: [articles.authorId],
+    references: [authors.id],
   }),
   tags: many(articleTags),
 }));

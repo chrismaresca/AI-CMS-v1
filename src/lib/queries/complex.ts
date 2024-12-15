@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import * as schema from "@/db/schema";
 
 // Types
-import { Article, Tag } from "@/types/cms";
+import { Article, ArticlePayload, Tag, TagPayload } from "@/types/cms";
 
 // Dotenv
 import { config } from "dotenv";
@@ -29,14 +29,21 @@ const neonDb = drizzle(client, { schema });
  * @param {string} brandId - The ID of the brand to find tags for.
  * @returns {Promise<Tag[]>} An array of tags. Returns an empty array if no tags are found.
  */
-export async function findTagsByBrandId(brandId: string): Promise<Tag[]> {
+export async function findTagsByBrandId(brandId: string): Promise<TagPayload[]> {
   const brandTagObj = await neonDb.query.brandTags.findMany({
     where: eq(schema.brandTags.brandId, brandId),
     with: {
-      tag: true,
+      tag: {
+        columns: {
+          name: true,
+          slug: true,
+        },    
+      },
     },
   });
-  return brandTagObj.map((obj) => obj.tag);
+  return brandTagObj.map((obj) => ({
+    ...obj.tag,
+  }));
 }
 
 // =====================================================================================================
@@ -79,3 +86,37 @@ export async function findAllArticlesBySlug(slug: string): Promise<Article[]> {
 
 // =====================================================================================================
 // =====================================================================================================
+
+export async function findArticleInfoBySlug(slug: string): Promise<ArticlePayload | null> {
+  const articleInfo = await neonDb.query.articles.findFirst({
+    where: eq(schema.articles.slug, slug),
+    with: {
+      author: {
+        columns: {
+          firstName: true,
+          lastName: true,
+          title: true,
+          bio: true,
+          location: true,
+          dateCreated: true,
+        },
+      },
+      tags: {
+        with: {
+          tag: {
+            columns: {
+              name: true,
+              slug: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!articleInfo) return null;
+
+  return {
+    ...articleInfo,
+  };
+}

@@ -2,6 +2,7 @@ import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 
 // Schema import
 import * as Schema from "@/db/schema";
+import { exportPages } from "next/dist/export/worker";
 
 // TODO: This is when we want to dynamically generate the types for the models. Before doing this, need to sepaate domain tables from relationships, etc.
 
@@ -78,3 +79,37 @@ export type UpdateTweetInput = Partial<InsertTweetInput>;
 // =========================
 export type InsertTweetPostInput = InferInsertModel<typeof Schema.tweetPosts>;
 export type UpdateTweetPostInput = Partial<InsertTweetPostInput>;
+
+// =========================
+// Complex Query Types
+// =========================
+export type AuthorPayload = {
+  firstName: string;
+  lastName: string;
+  title: string;
+  bio: string;
+  location: string;
+  dateCreated: Date;
+};
+
+export type TagPayload = {
+  name: string;
+  slug: string;
+};
+
+export type ArticlePayload = {
+  id: string;
+  title: string;
+  content: string;
+  slug: string;
+  authorId: string;
+  brandId: string;
+  dateCreated: Date;
+  dateUpdated: Date;
+  author: AuthorPayload;
+  tags: {
+    articleId: string;
+    tagId: string;
+    tag: TagPayload;
+  }[];
+};
